@@ -41,6 +41,6 @@ python manage.py runserver 0.0.0.0
 
 
 ## Mobile Application
-Get the mobile applications from ....
+Get the mobile applications from https://github.com/saad4software/alive-diary-app
 
 
