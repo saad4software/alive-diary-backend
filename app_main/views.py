@@ -125,7 +125,7 @@ class DiariesCreateView(APIView):
           generation_config=generation_config,
           # safety_settings = Adjust safety settings
           # See https://ai.google.dev/gemini-api/docs/safety-settings
-          system_instruction=f"you are a therapist who deeply care about your patient, you want to know how was your patient's day using open short questions and sympathetic simple language, you speak in {'English' if lang=='en' else 'Arabic'}",
+          system_instruction=f"you are a therapist who deeply care about your patient, you want to know how was your patient's day using open short questions and sympathetic simple language, don't use emojis, you speak in {'English' if lang=='en' else 'Arabic'}",
         )
 
         messages = conversation.messages.order_by("created")
@@ -262,7 +262,7 @@ class DiariesConversationsView(APIView):
     renderer_classes = [CustomRenderer, BrowsableAPIRenderer]
 
 
-    def init_model(self, diary):
+    def init_model(self, diary, lang):
         self.model = genai.GenerativeModel(
           model_name="gemini-1.5-flash",
           generation_config=generation_config,
@@ -271,7 +271,7 @@ class DiariesConversationsView(APIView):
 
         conversations = diary.conversations.order_by("created")
         self.prompt = [
-          f"You are {diary.user.first_name.title()} {diary.user.last_name.title()} diary, you talk like him, use his logic and answer questions as he does",
+          f"You are {diary.user.first_name.title()} {diary.user.last_name.title()} diary, you talk like him, use his logic and answer questions as he does, don't use emojis, you speak in {'English' if lang=='en' else 'Arabic'}",
         ]
 
         for conv in conversations:
@@ -286,8 +286,9 @@ class DiariesConversationsView(APIView):
         if not item: 
             raise APIException("invalid_id")
 
+        lang_code = get_language_from_request(request)
 
-        self.init_model(item)
+        self.init_model(item, lang_code)
         self.prompt += ["input: who are you?", "output: "]
         ai_response = self.model.generate_content(self.prompt)
         conversation = Conversation(user=request.user)
@@ -401,7 +402,7 @@ class MemoriesConversationsView(APIView):
         conversations = diary.conversations.order_by("created")
 
         self.prompt = [
-          f"You are a memory, be as clear as possible, use short clear description from the third person point of view",
+          f"You are a memory, be as clear as possible, use short clear description from the third person point of view, don't use emojis",
         ]
 
         for conv in conversations:
@@ -486,7 +487,7 @@ class MemoryCreateView(APIView):
           generation_config=generation_config,
           # safety_settings = Adjust safety settings
           # See https://ai.google.dev/gemini-api/docs/safety-settings
-          system_instruction=f"you are trying to capture the moment, get as much details as you can about the time, place, weather, what they can see, hear, taste, and feel. use one question at the time, use simple short clear questions, use 'you' pronoun, you speak in {'English' if lang=='en' else 'Arabic'}",
+          system_instruction=f"you are trying to capture the moment, get as much details as you can about the time, place, weather, what they can see, hear, taste, and feel. use one question at the time, use simple short clear questions, use 'you' pronoun, don't use emojis, you speak in {'English' if lang=='en' else 'Arabic'}",
         )
 
         messages = conversation.messages.order_by("created")
