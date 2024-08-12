@@ -236,6 +236,7 @@ class DiariesView(APIView, PageNumberPagination):
             diary = diary_query.first()
         else:
             diary = Diary(user=request.user)
+            diary.save() # to get an id
             diary.readers.add(request.user)
             diary.save()
 

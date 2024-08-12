@@ -117,26 +117,25 @@ class RegisterSerializer(serializers.ModelSerializer):
         # the context is the request
         base_url = self.context['request'].build_absolute_uri('/')
 
-        send_mail(
-            'Welcome to Alive Diary! 🚀',
+#         send_mail(
+#             'Welcome to Alive Diary! 🚀',
 
-f"""
-Dear {user.first_name} {user.last_name},
+# f"""
+# Dear {user.first_name} {user.last_name},
 
-Welcome aboard! 🎉                                                                                                                                 
+# Welcome aboard! 🎉                                                                                                                                 
 
-Your activation code is {code.code}
-You can also follow this link {base_url}api/account/activate/?code={code.code}&user={user.id}
+# Your activation code is {code.code}
 
-Best regards,
-Alive Diary team with ❤️
+# Best regards,
+# Alive Diary team with ❤️
 
-"""
-            ,
-            f'AliveDiary<{settings.EMAIL_SENDER}>',
-            [data['username']],
-            fail_silently=False,
-            )
+# """
+#             ,
+#             f'AliveDiary<{settings.EMAIL_SENDER}>',
+#             [data['username']],
+#             fail_silently=False,
+#             )
 
 
         return data

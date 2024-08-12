@@ -35,6 +35,8 @@ A digital diary that combines natural language processing (NLP) and machine lear
 1. Create your .env file with SECRET_KEY, EMAIL_SENDER, EMAIL_HOST, EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD, and GOOGLE_API_KEY fields
 1. Run
 ```bash
+pip install -r requirements.txt
+python manage.py migrate
 python manage.py runserver 0.0.0.0
 ```
 3. enjoy

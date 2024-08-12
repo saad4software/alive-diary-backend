@@ -64,14 +64,11 @@ class DiarySerializer(serializers.ModelSerializer):
             'active',
             'first_name',
             'last_name',
-
             'title',
             'is_memory',
-
             'status',
             'is_built',
             'last_built',
-            
             'id'
         ]
         read_only_fields = ['id', 'is_memory', 'status', 'active', 'is_built']
