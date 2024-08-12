@@ -60,12 +60,14 @@ urlpatterns = [
     path('diaries/list/<int:id>/', DiariesView.as_view()),
     path('diaries/list/<int:id>/start/', DiariesConversationsView.as_view()),
     path('diaries/list/<int:id>/create/', DiariesCreateView.as_view()),
+    path('diaries/list/<int:id>/share/', DiariesShareView.as_view()),
 
 
     path('memories/list/', MemoriesView.as_view()),
     path('memories/list/<int:id>/', MemoriesView.as_view()),
     path('memories/list/<int:id>/create/', MemoryCreateView.as_view()),
     path('memories/list/<int:id>/start/', MemoriesConversationsView.as_view()),
+    path('memories/list/<int:id>/share/', DiariesShareView.as_view()),
 
 
 ]

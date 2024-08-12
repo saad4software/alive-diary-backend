@@ -125,7 +125,7 @@ class DiariesCreateView(APIView):
           generation_config=generation_config,
           # safety_settings = Adjust safety settings
           # See https://ai.google.dev/gemini-api/docs/safety-settings
-          system_instruction=f"you are a therapist who deeply care about your patient, you want to know how was your patient's day using open short questions and sympathetic simple language, don't use emojis, you speak in {'English' if lang=='en' else 'Arabic'}",
+          system_instruction=f"you are a therapist who deeply care about your patient, you want to know how was your patient's day using open short questions and sympathetic simple language, don't use emojis or smilies, you speak in {'English' if lang=='en' else 'Arabic'}",
         )
 
         messages = conversation.messages.order_by("created")
@@ -246,7 +246,6 @@ class DiariesView(APIView, PageNumberPagination):
 
     def delete(self, request, **kwargs):
         item = Diary.objects.filter(id=kwargs['id'], user=request.user).first()
-
         if not item: 
             raise APIException("invalid_id")
 
@@ -271,7 +270,7 @@ class DiariesConversationsView(APIView):
 
         conversations = diary.conversations.order_by("created")
         self.prompt = [
-          f"You are {diary.user.first_name.title()} {diary.user.last_name.title()} diary, you talk like him, use his logic and answer questions as he does, don't use emojis, you speak in {'English' if lang=='en' else 'Arabic'}",
+          f"You are {diary.user.first_name.title()} {diary.user.last_name.title()} diary, you talk like him, use his logic and answer questions as he does, don't use emojis or smilies, you speak in {'English' if lang=='en' else 'Arabic'}",
         ]
 
         for conv in conversations:
@@ -343,6 +342,28 @@ class DiariesConversationsView(APIView):
         item.delete()
         return Response("success")
 
+class DiariesShareView(APIView):
+    permission_classes = (IsAuthenticated, )
+    renderer_classes = [CustomRenderer, BrowsableAPIRenderer]
+
+
+    def get(self, request, **kwargs):
+        user = request.user
+        email = request.GET.get('email')
+        email_user = User.objects.filter(username=email).first()
+        if not email_user:
+            raise APIException("invalid_email")
+        diary = Diary.objects.filter(id=kwargs['id'], user=request.user).first()
+        if not diary:
+            raise APIException("invalid_id")
+
+        if email_user not in diary.readers.all(): diary.readers.add(email_user)
+        diary.save()
+
+        return Response("success")
+
+
+
 
 
 class MemoriesView(APIView, PageNumberPagination):
@@ -402,7 +423,7 @@ class MemoriesConversationsView(APIView):
         conversations = diary.conversations.order_by("created")
 
         self.prompt = [
-          f"You are a memory, be as clear as possible, use short clear description from the third person point of view, don't use emojis",
+          f"You are a memory, be as clear as possible, use short clear description from the third person point of view, don't use emojis or smilies",
         ]
 
         for conv in conversations:
@@ -487,7 +508,7 @@ class MemoryCreateView(APIView):
           generation_config=generation_config,
           # safety_settings = Adjust safety settings
           # See https://ai.google.dev/gemini-api/docs/safety-settings
-          system_instruction=f"you are trying to capture the moment, get as much details as you can about the time, place, weather, what they can see, hear, taste, and feel. use one question at the time, use simple short clear questions, use 'you' pronoun, don't use emojis, you speak in {'English' if lang=='en' else 'Arabic'}",
+          system_instruction=f"you are trying to capture the moment, get as much details as you can about the date, time, place, weather, what they can see, hear, taste, and feel. use one question at the time, use 'you' pronoun, don't use emojis or smilies, you speak in {'English' if lang=='en' else 'Arabic'}",
         )
 
         messages = conversation.messages.order_by("created")
