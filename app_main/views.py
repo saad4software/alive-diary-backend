@@ -160,12 +160,16 @@ class DiariesCreateView(APIView):
 
 
         lang_code = get_language_from_request(request)
+        msg_hello = "hello" if lang_code == "en" else "مرحبا"
+        msg_hello_again = "hello again" if lang_code == "en" else "مرحبا مجددا"
+        hello_msg = msg_hello_again if conversation_query.exists else msg_hello
+
         self.init_model(conversation, lang_code)
-        hello_msg = "hello again" if conversation_query.exists else "hello" 
         ai_response = self.chat_session.send_message(hello_msg)
+
         ai_message = Message(
             text=ai_response.text, 
-            # text=msg, 
+            # text=msg_hello, 
             user=request.user, 
             conversation=conversation,
             is_user=False
@@ -194,11 +198,15 @@ class DiariesCreateView(APIView):
             raise APIException("invalid_id")
 
         lang_code = get_language_from_request(request)
+        msg_hello = "hello" if lang_code == "en" else "مرحبا"
+        msg_hello_again = "hello again" if lang_code == "en" else "مرحبا مجددا"
+        # hello_msg = msg_hello_again if conversation_query.exists else msg_hello
+
         self.init_model(message.conversation, lang_code)
         ai_response = self.chat_session.send_message(message.text)
         ai_message = Message(
             text=ai_response.text, 
-            # text=msg, 
+            # text=msg_hello, 
             user=request.user, 
             conversation=message.conversation,
             is_user=False
@@ -413,7 +421,7 @@ class MemoriesConversationsView(APIView):
     renderer_classes = [CustomRenderer, BrowsableAPIRenderer]
 
 
-    def init_model(self, diary):
+    def init_model(self, diary, lang):
         self.model = genai.GenerativeModel(
           model_name="gemini-1.5-flash",
           generation_config=generation_config,
@@ -423,7 +431,7 @@ class MemoriesConversationsView(APIView):
         conversations = diary.conversations.order_by("created")
 
         self.prompt = [
-          f"You are a memory, be as clear as possible, use short clear description from the third person point of view, don't use emojis or smilies",
+          f"You are a memory, be as clear as possible, use short clear description from the third person point of view, don't use emojis or smilies, you speak in {'English' if lang=='en' else 'Arabic'}",
         ]
 
         for conv in conversations:
@@ -440,9 +448,12 @@ class MemoriesConversationsView(APIView):
         if not item: 
             raise APIException("invalid_id")
 
+        lang_code = get_language_from_request(request)
+        msg_hello = "describe the memory for me" if lang_code == "en" else "صف لي هذه الذكرى"
 
-        self.init_model(item)
-        self.prompt += ["input: describe the memory for me", "output: "]
+
+        self.init_model(item, lang_code)
+        self.prompt += [f"input: {msg_hello}", "output: "]
         ai_response = self.model.generate_content(self.prompt)
         conversation = Conversation(user=request.user)
         conversation.save()
@@ -469,7 +480,9 @@ class MemoriesConversationsView(APIView):
         if not item: 
             raise APIException("invalid_id")
 
-        self.init_model(item)
+        lang_code = get_language_from_request(request)
+
+        self.init_model(item, lang_code)
         message = serializer.save(
             user=request.user,
             is_user=True,

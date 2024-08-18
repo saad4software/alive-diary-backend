@@ -24,7 +24,7 @@ class UpdateSerializer(serializers.ModelSerializer):
             'bio',
             'role',
         )
-        read_only_fields = ('username', 'role' )
+        read_only_fields = ('username', 'role',  'expiration_date')
 
 
 class LoginSerializer(TokenObtainPairSerializer):
@@ -40,8 +40,9 @@ class LoginSerializer(TokenObtainPairSerializer):
         if not active:
             raise serializers.ValidationError(msgs.not_active)
 
-        if user.expiration_date and user.role == "C" and user.expiration_date < timezone.now():
-            raise serializers.ValidationError(msgs.expired_account)
+        # todo: expiration date logic
+        # if user.expiration_date and user.role == "C" and user.expiration_date < timezone.now():
+        #     raise serializers.ValidationError(msgs.expired_account)
 
         refresh = self.get_token(user)
         notifications_count = Notification.objects.filter(user=user, seen=False).count()
@@ -53,8 +54,6 @@ class LoginSerializer(TokenObtainPairSerializer):
             'role': user.role,
             'notifications': notifications_count,
         }
-
-        # time.sleep(5)
 
         return data
 
