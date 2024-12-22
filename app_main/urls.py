@@ -31,7 +31,7 @@ messages_details = MessageViewSet.as_view({
 diaries_list = DiaryViewSet.as_view({
     'get': 'list',
     'post': 'create'
-})
+})DiariesCreateView
 
 diaries_details = DiaryViewSet.as_view({
     'get': 'retrieve',
