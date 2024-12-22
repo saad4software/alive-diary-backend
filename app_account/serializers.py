@@ -1,15 +1,14 @@
 from rest_framework import serializers
 from app_account.models import *
-from django.utils import timezone
 from django.contrib.auth import get_user_model
-from rest_framework_simplejwt.state import token_backend
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenRefreshSerializer
-from . import msgs
 from django.core.mail import send_mail
 from django.conf import settings
-import time
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenRefreshSerializer
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.state import token_backend
+from common.utils import is_valid_email
 
-class UpdateSerializer(serializers.ModelSerializer):
+class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = get_user_model()
@@ -24,7 +23,7 @@ class UpdateSerializer(serializers.ModelSerializer):
             'bio',
             'role',
         )
-        read_only_fields = ('username', 'role',  'expiration_date')
+        read_only_fields = ['username', 'role',  'expiration_date']
 
 
 class LoginSerializer(TokenObtainPairSerializer):
@@ -34,44 +33,32 @@ class LoginSerializer(TokenObtainPairSerializer):
         user = get_user_model().objects.filter(username=username).first()
 
         if not user or not user.check_password(attrs['password']):
-            raise serializers.ValidationError(msgs.invalid_credentials)
+            raise serializers.ValidationError("invalid_credentials")
 
-        active = not VerificationCode.objects.filter(user__id=user.id, email=user.username).exists()
-        if not active:
-            raise serializers.ValidationError(msgs.not_active)
-
-        # todo: expiration date logic
-        # if user.expiration_date and user.role == "C" and user.expiration_date < timezone.now():
-        #     raise serializers.ValidationError(msgs.expired_account)
+        if not user.is_active:
+            raise serializers.ValidationError("not_active")
 
         refresh = self.get_token(user)
-        notifications_count = Notification.objects.filter(user=user, seen=False).count()
 
         data = {
             'refresh': str(refresh),
             'access': str(refresh.access_token),
-            'user': UpdateSerializer(user).data,
+            'user': UserSerializer(user).data,
             'role': user.role,
-            'notifications': notifications_count,
         }
 
         return data
 
 
 class RefreshTokenSerializer(TokenRefreshSerializer):
+
     def validate(self, attrs):
         data = super().validate(attrs)
         decoded_payload = token_backend.decode(data['access'], verify=True)
         user_id = decoded_payload['user_id']
         user = User.objects.get(id=user_id)
-
-        if user.expiration_date and user.role == "C" and user.expiration_date < timezone.now():
-            raise serializers.ValidationError(msgs.expired_account)
-
-        notifications_count = Notification.objects.filter(user=user, seen=False).count()
         data['role'] = user.role
-        data['notifications'] = notifications_count
-        data['user'] = UpdateSerializer(user).data
+        data['user'] = UserSerializer(user).data
         return data
 
 
@@ -79,69 +66,32 @@ class ChangePasswordSerializer(serializers.Serializer):
     password = serializers.CharField(required=True)
     new_password = serializers.CharField(required=True)
 
-    def validate(self, data):
-        user = self.context.user
-        if not user.check_password(data.get('password')):
-            raise serializers.ValidationError(msgs.wrong_password)
-        return data
-
-    def change_password(self, validate_data):
-        user = self.context.user
-        user.set_password(validate_data.get('new_password'))
-        user.save()
-
 
 class RegisterSerializer(serializers.ModelSerializer):
     password1 = serializers.CharField(write_only=True)
     password2 = serializers.CharField(write_only=True)
 
+    def validate_username(self, value):
+        if not is_valid_email(value):
+            raise serializers.ValidationError("invalid_email")
+
+        return value
+
+
     def validate(self, data):
         if data['password1'] != data['password2']:
-            raise serializers.ValidationError(msgs.no_match)
-        return data
+            raise serializers.ValidationError("password_dont_match")
 
-    def create(self, validated_data):
-        data = {
-            key: value for key, value in validated_data.items()
-            if key not in ('password1', 'password2')
-        }
-        data['password'] = validated_data['password1']
+        data['password'] = data['password1']
 
-        user = self.Meta.model.objects.create_user(**data)
-
-        # email verification code, assumed username is email!
-        code = VerificationCode(user=user, email=user.username)
-        code.save()
-
-        # the context is the request
-        base_url = self.context['request'].build_absolute_uri('/')
-
-        send_mail(
-            'Welcome to Alive Diary! 🚀',
-
-f"""
-Dear {user.first_name} {user.last_name},
-
-Welcome aboard! 🎉                                                                                                                                 
-
-Your activation code is {code.code}
-
-Best regards,
-Alive Diary team with ❤️
-
-"""
-            ,
-            f'AliveDiary<{settings.EMAIL_SENDER}>',
-            [data['username']],
-            fail_silently=False,
-            )
-
+        data.pop('password1', None)
+        data.pop('password2', None)
 
         return data
 
     class Meta:
         model = get_user_model()
-        fields = (
+        fields = [
             'id',
             'email',
             'password1',
@@ -150,53 +100,27 @@ Alive Diary team with ❤️
             'last_name',
             'country_code',
             'username',
-        )
-        read_only_fields = ('id',)
-
-
-class SendCodeSerializer(serializers.Serializer):
-    username = serializers.CharField(required=True)
-
-    def validate(self, data):
-        verification_query = get_user_model().objects.filter(username=data['username']).exists()
-
-        if verification_query:
-            self.create(data)
-            return data
-        raise serializers.ValidationError(msgs.invalid_user)
-
-    def create(self, validated_data):
-        user = get_user_model().objects.filter(username=validated_data.get("username")).first()
-
-        # email verification code, assumed username is email!
-        code = VerificationCode(user=user, email=user.username)
-        code.save()
-
-        send_mail(
-            'Password Reset Code',
-            'Your password reset code is ' + str(code.code),
-            f'Campaigny<{settings.EMAIL_SENDER}>',
-            [validated_data.get('username')],
-            fail_silently=False,
-            )
+        ]
+        read_only_fields = ['id',]
 
 
 class ActivateSerializer(serializers.Serializer):
     username = serializers.CharField(required=True)
     code = serializers.CharField(required=True)
 
-    def validate(self, data):
-        verification_query = VerificationCode.objects.filter(user__username=data['username'], email=data['username']).order_by('-id')
-        if verification_query.exists():
-            code = verification_query[0]
-            success = str(code.code) == str(data['code'])
-            if success:
-                verification_query.delete()
-                return data
-            else:
-                raise serializers.ValidationError(msgs.invalid_code)
 
-        raise serializers.ValidationError(msgs.already_activated)
+class SendCodeSerializer(serializers.Serializer):
+    username = serializers.CharField(required=True)
+
+    def validate_username(self, value):
+        if not is_valid_email(value):
+            raise serializers.ValidationError("invalid_email")
+
+        verification_query = get_user_model().objects.filter(username=value).exists()
+        if not verification_query:
+            raise serializers.ValidationError("invalid_username")
+
+        return value
 
 
 class ForgotPasswordSerializer(serializers.Serializer):
@@ -205,23 +129,19 @@ class ForgotPasswordSerializer(serializers.Serializer):
     new_password = serializers.CharField(required=True)
 
     def validate(self, data):
-        verification_query = VerificationCode.objects.filter(user__username=data['username']).order_by('-id')
-        if verification_query.exists():
-            code = verification_query[0]
-            success = str(code.code) == str(data['code'])
-            if success:
-                verification_query.delete()
-                self.reset_password(data)
-                return data
-            else:
-                raise serializers.ValidationError(msgs.invalid_code)
+        verification_query = VerificationCode.objects.filter(
+            user__username=data['username'],
+        ).order_by('-id')
 
-        raise serializers.ValidationError(msgs.no_code)
+        if not verification_query.exists():
+            raise serializers.ValidationError("no_code")
 
-    def reset_password(self, validated_data):
-        # verification_query = VerificationCode.objects.filter(user__username=validated_data['username'])
-        # verification_query.delete()
+        code = verification_query[0]
+        if str(code.code) != str(data['code']):
+            raise serializers.ValidationError("invalid_code")
 
-        user = get_user_model().objects.filter(username=validated_data.get('username')).first()
-        user.set_password(validated_data.get('new_password'))
-        user.save()
+        return data
+
+
+
+

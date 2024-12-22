@@ -1,8 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from datetime import timedelta, datetime
-import random
-
 
 class User(AbstractUser):
     userTypes = (
@@ -19,6 +17,7 @@ class User(AbstractUser):
     country_code = models.CharField(max_length=10, null=True, blank=True)
     expiration_date = models.DateTimeField(default=datetime.now()+timedelta(days=30))
 
+import random
 
 class VerificationCode(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -28,15 +27,3 @@ class VerificationCode(models.Model):
 
     def __str__(self):
         return self.user.username
-
-
-class Notification(models.Model):
-    created = models.DateTimeField(auto_now_add=True)
-    user = models.ForeignKey(User, related_name="notifications", on_delete=models.CASCADE)
-    title = models.CharField(max_length=255)
-    body = models.TextField(blank=True)
-    seen = models.BooleanField(default=False)
-    active = models.BooleanField(default=True)
-
-    def __str__(self):
-        return self.title

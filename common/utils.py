@@ -1,7 +1,6 @@
 from rest_framework.renderers import JSONRenderer, BrowsableAPIRenderer
-from rest_framework.pagination import PageNumberPagination
-from app_account.models import Notification, User
 import os, re
+from rest_framework.pagination import PageNumberPagination
 
 
 class CustomRenderer(JSONRenderer):
@@ -51,104 +50,104 @@ def dict2string(data):
     return msg
 
 
-def notify_managers(user, title, message):
-    managers = User.objects.filter(clinic=user.clinic, is_active=True, role="M")
-    for manager in managers:
-        notification = Notification(
-            user=manager,
-            sender=user,
-            title=title,
-            brief=message
-        )
-        notification.save()
+# def notify_managers(user, title, message):
+#     managers = User.objects.filter(clinic=user.clinic, is_active=True, role="M")
+#     for manager in managers:
+#         notification = Notification(
+#             user=manager,
+#             sender=user,
+#             title=title,
+#             brief=message
+#         )
+#         notification.save()
 
-    solo = User.objects.filter(clinic=user.clinic, is_active=True, role="S")
-    for manager in solo:
-        notification = Notification(
-            user=manager,
-            sender=user,
-            title=title,
-            brief=message
-        )
-        notification.save()
+#     solo = User.objects.filter(clinic=user.clinic, is_active=True, role="S")
+#     for manager in solo:
+#         notification = Notification(
+#             user=manager,
+#             sender=user,
+#             title=title,
+#             brief=message
+#         )
+#         notification.save()
 
 
- 
+
 def is_valid_email(email):
     regex = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b'
     return email and isinstance(email, str) and re.fullmatch(regex, email)
 
 
-def deNoise(text):
-    noise = re.compile(""" ّ    | # Tashdid
-                             َ    | # Fatha
-                             ً    | # Tanwin Fath
-                             ُ    | # Damma
-                             ٌ    | # Tanwin Damm
-                             ِ    | # Kasra
-                             ٍ    | # Tanwin Kasr
-                             ْ    | # Sukun
-                             ـ     # Tatwil/Kashida
-                         """, re.VERBOSE)
-    text = re.sub(noise, '', text)
-    return text
+# def deNoise(text):
+#     noise = re.compile(""" ّ    | # Tashdid
+#                              َ    | # Fatha
+#                              ً    | # Tanwin Fath
+#                              ُ    | # Damma
+#                              ٌ    | # Tanwin Damm
+#                              ِ    | # Kasra
+#                              ٍ    | # Tanwin Kasr
+#                              ْ    | # Sukun
+#                              ـ     # Tatwil/Kashida
+#                          """, re.VERBOSE)
+#     text = re.sub(noise, '', text)
+#     return text
 
 
-def removeNonArabic(text):
-    text = re.sub("[A-Za-z0-9]", "@", text)
-    return text
+# def removeNonArabic(text):
+#     text = re.sub("[A-Za-z0-9]", "@", text)
+#     return text
 
 
-def dictReplace(text, dic):
-    for k, v in dic.items():
-        text = text.replace(k, v)
-    return(text)
+# def dictReplace(text, dic):
+#     for k, v in dic.items():
+#         text = text.replace(k, v)
+#     return(text)
 
 
-def dictReplaceRev(text, dic):
-    for k, v in dic.items():
-        text = text.replace(v, k)
-    return(text)
+# def dictReplaceRev(text, dic):
+#     for k, v in dic.items():
+#         text = text.replace(v, k)
+#     return(text)
 
 
-translit = {
-    '،'   : ',',
-# letters
-    'ء'  : 'a',
-    'ؤ'  : 'w',
-    'ئ'  : 'i',
-    'ا'  : 'a',
-    'إ'  : 'e',
-    'أ'  : 'a',
-    'آ'  : 'a',
-    'ب'  : 'b',
-    'ة'  : 't',
-    'ت'  : 't',
-    'ث'  : 'th',
-    'ج'  : 'j',
-    'ح'  : 'h',
-    'خ'  : 'gh',
-    'د'  : 'd',
-    'ذ'  : 'th',
-    'ر'  : 'r',
-    'ز'  : 'z',
-    'س'  : 's',
-    'ش'  : 'sh',
-    'ص'  : 's',
-    'ض'  : 'd',
-    'ط'  : 't',
-    'ظ'  : 'd',
-    'ع'  : 'a',
-    'غ'  : 'gh',
-    'ف'  : 'f',
-    'ق'  : 'q',
-    'ك'  : 'k',
-    'ل'  : 'l',
-    'م'  : 'm',
-    'ن'  : 'n',
-    'ه'  : 'h',
-    'و'  : 'w',
-    'ى'  : 'a',
-    'ي'  : 'y',
-}
+# translit = {
+#     '،'   : ',',
+# # letters
+#     'ء'  : 'a',
+#     'ؤ'  : 'w',
+#     'ئ'  : 'i',
+#     'ا'  : 'a',
+#     'إ'  : 'e',
+#     'أ'  : 'a',
+#     'آ'  : 'a',
+#     'ب'  : 'b',
+#     'ة'  : 't',
+#     'ت'  : 't',
+#     'ث'  : 'th',
+#     'ج'  : 'j',
+#     'ح'  : 'h',
+#     'خ'  : 'gh',
+#     'د'  : 'd',
+#     'ذ'  : 'th',
+#     'ر'  : 'r',
+#     'ز'  : 'z',
+#     'س'  : 's',
+#     'ش'  : 'sh',
+#     'ص'  : 's',
+#     'ض'  : 'd',
+#     'ط'  : 't',
+#     'ظ'  : 'd',
+#     'ع'  : 'a',
+#     'غ'  : 'gh',
+#     'ف'  : 'f',
+#     'ق'  : 'q',
+#     'ك'  : 'k',
+#     'ل'  : 'l',
+#     'م'  : 'm',
+#     'ن'  : 'n',
+#     'ه'  : 'h',
+#     'و'  : 'w',
+#     'ى'  : 'a',
+#     'ي'  : 'y',
+# }
 
